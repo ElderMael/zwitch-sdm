@@ -14,25 +14,42 @@
  * limitations under the License.
  */
 
-import { GoalConfigurer } from "@atomist/sdm-core";
-import { HelloWorldGoals } from "./goals";
+import {JavaFileParser} from "@atomist/antlr";
+import {astUtils, GitHubRepoRef, Project} from "@atomist/automation-client";
+import {FileHit} from "@atomist/automation-client/lib/tree/ast/FileHits";
+import {CodeTransform, GeneratorRegistration} from "@atomist/sdm";
+import {GoalConfigurer} from "@atomist/sdm-core";
+import {SeedProjectGoals} from "./goals";
 
-/**
- * Configure the SDM and add fulfillments or listeners to the created goals
- */
-export const HelloWorldGoalConfigurer: GoalConfigurer<HelloWorldGoals> = async (sdm, goals) => {
+export const SeedProjectGoalConfigurer: GoalConfigurer<SeedProjectGoals> = async (sdm, goals) => {
 
-    // This is a good place to configure your SDM instance and goals with additional listeners or
-    // fulfillments
+    const RemoveEchoFeatureTransform: CodeTransform = async (project: Project) => {
 
-    goals.helloWorld.with({
-        name: "hello-world",
-        goalExecutor: async gi => {
-            const { progressLog, addressChannels } = gi;
+        const [singleMatch]: FileHit[] = await astUtils.findFileMatches(
+            project,
+            JavaFileParser,
+            "**/*.java",
+            "/compilationUnit//classDeclaration[//Identifier[@value='EchoController']]");
 
-            progressLog.write("Sending 'hello world' to all linked channels");
-            await addressChannels("Hello world");
-        },
-    });
+        project.deleteFile(singleMatch.file.path);
+    };
+
+    const MicronautSeedGenerator: GeneratorRegistration = {
+        name: "Micronaut Code Generator",
+        intent: "create micronaut basic app without echo feature",
+        description: "Creates a basic Micronaut Application",
+        tags: ["micronaut", "java"],
+        autoSubmit: true,
+        startingPoint: GitHubRepoRef.from({
+            owner: "ElderMael",
+            repo: "micronaut-seed-app",
+            branch: "master",
+        }),
+        transform: [
+            RemoveEchoFeatureTransform,
+        ],
+    };
+
+    sdm.addGeneratorCommand(MicronautSeedGenerator);
 
 };

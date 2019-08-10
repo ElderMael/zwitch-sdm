@@ -16,15 +16,12 @@
 
 import { goal } from "@atomist/sdm";
 import { GoalCreator } from "@atomist/sdm-core";
-import { HelloWorldGoals } from "./goals";
+import { SeedProjectGoals } from "./goals";
 
 /**
- * Create all goal instances and return an instance of HelloWorldGoals
+ * Create all goal instances and return an instance of SeedProjectGoals
  */
-export const HelloWorldGoalCreator: GoalCreator<HelloWorldGoals> = async sdm => {
-
-    // This is the place to create the goal instances and return them
-    // as part of the goal interface
+export const SeedProjectGoalCreator: GoalCreator<SeedProjectGoals> = async sdm => {
 
     return {
         helloWorld: goal({ displayName: "hello world" }),
