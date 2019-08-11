@@ -1,24 +1,26 @@
 {
-  "name": "@ElderMael/feature-toggle-sdm",
+  "name": "zwitch-sdm",
   "version": "0.1.0",
-  "description": "my new project",
+  "description": "Atomist SDM That Provides Feature Toggles",
   "author": {
     "name": "ElderMael",
     "email": "sftwr.mael@gmail.com"
   },
   "license": "Apache-2.0",
-  "homepage": "https://github.com/ElderMael/feature-toggle-sdm#readme",
+  "homepage": "https://github.com/ElderMael/zwitch-sdm#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ElderMael/feature-toggle-sdm.git"
+    "url": "https://github.com/ElderMael/zwitch-sdm-sdm.git"
   },
   "bugs": {
-    "url": "https://github.com/ElderMael/feature-toggle-sdm/issues"
+    "url": "https://github.com/ElderMael/zwitch-sdm/issues"
   },
   "keywords": [
     "atomist",
     "automation",
-    "sdm"
+    "sdm",
+    "feature",
+    "toggle"
   ],
   "main": "./index.js",
   "types": "./index.d.ts",
