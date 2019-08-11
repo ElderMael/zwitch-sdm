@@ -50,14 +50,7 @@ function hasFeatureAnnotationAndFeatureToDelete(typeDeclaration: MatchResult, fe
     return childrenWithFeatureAnnotation.length > 0;
 }
 
-const RemoveEchoFeatureTransform: CodeTransform<FeatureToggleParams> = async (
-    project: Project,
-    papi,
-    params) => {
-
-    const featuresToDelete = params["remove.features"]
-        .split(",");
-
+async function deleteFeatureFiles(project: Project, featuresToDelete: string[]): Promise<Project> {
     const javaTypeDeclarations = await astUtils.findMatches(
         project,
         JavaFileParser,
@@ -71,7 +64,23 @@ const RemoveEchoFeatureTransform: CodeTransform<FeatureToggleParams> = async (
         })
         .map(featureMatch => featureMatch.sourceLocation.path);
 
-    filesToDelete.forEach(file => project.deleteFile(file));
+    const promisesOfDeletion = filesToDelete.map(file => project.deleteFile(file));
+
+    return Promise.all(promisesOfDeletion).then(_.head);
+}
+
+const RemoveEchoFeatureTransform: CodeTransform<FeatureToggleParams> = async (
+    project: Project,
+    papi,
+    params) => {
+
+    const featuresToDelete = _.compact(params["remove.features"].split(","));
+
+    if (_.isEmpty(featuresToDelete)) {
+        return Promise.resolve();
+    }
+
+    return deleteFeatureFiles(project, featuresToDelete);
 
 };
 
