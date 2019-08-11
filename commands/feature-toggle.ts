@@ -5,6 +5,9 @@ import {TreeNode} from "@atomist/tree-path";
 
 interface FeatureToggleParams {
     "remove.feature": string;
+    "seed.owner": string;
+    "seed.name": string;
+    "seed.branch": string;
 }
 
 interface ElementValue extends TreeNode {
@@ -53,21 +56,38 @@ const RemoveEchoFeatureTransform: CodeTransform<FeatureToggleParams> = async (
 };
 
 export const FeatureTogglingSeedGeneratorRegistration: GeneratorRegistration<FeatureToggleParams> = {
-    name: "Micronaut Code Generator",
-    intent: "create micronaut app",
-    description: "Creates a basic Micronaut Application",
-    tags: ["micronaut", "java"],
+    name: "Clone Project",
+    intent: "create seed instance",
+    description: "Clones a git project and applies feature toggles to it",
+    tags: ["java"],
     autoSubmit: true,
-    startingPoint: GitHubRepoRef.from({
-        owner: "ElderMael",
-        repo: "micronaut-seed-app",
-        branch: "master",
-    }),
+    startingPoint: params => {
+        return GitHubRepoRef.from({
+            owner: params["seed.owner"],
+            repo: params["seed.name"],
+            branch: params["seed.branch"],
+        });
+    },
     parameters: {
         "remove.feature": {
             required: true,
             type: "string",
             displayName: "Feature To Delete",
+        },
+        "seed.branch": {
+            required: true,
+            type: "string",
+            displayName: "Branch to use",
+        },
+        "seed.name": {
+            required: true,
+            type: "string",
+            displayName: "GitHub repository name",
+        },
+        "seed.owner": {
+            required: true,
+            type: "string",
+            displayName: "GitHub username",
         },
     },
     transform: [

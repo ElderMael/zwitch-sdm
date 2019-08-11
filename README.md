@@ -13,16 +13,41 @@
 An [Atomist][atomist] software delivery machine (SDM) that clones projects
 and deletes/adds features to them based on parameters.
 
-## Code of conduct
+## Usage
 
-This project is governed by the [Code of
-Conduct](CODE_OF_CONDUCT.md). You are expected to act in accordance
-with this code by participating. Please report any unacceptable
-behavior to code-of-conduct@atomist.com.
+Install dependencies
+```bash
+npm install -h @atomist/cli
+```
 
-If you find a problem, please create an [issue][].
+Clone this project:
+```bash
+git clone https://github.com/ElderMael/zwitch-sdm.git
+```
 
-[issue]: https://github.com/atomist-seeds/empty-sdm/issues
+Start the SDM
+```bash
+cd zwitch-sdm && atomist start --local
+```
+
+Create a seed project instance somewhere in your `ATOMIST_ROOT` e.g.
+
+```bash
+atomist create seed instance \
+    --seed-name=micronaut-seed-app \
+    --seed-owner=ElderMael \
+    --seed-branch=master \
+    --remove-feature=echo \
+    --target-repo=seed-instance-6
+```
+
+This will clone [this repository][seed-example] and remove classes tagged with `Feature("echo")`.
+
+## Parameters
+
+* `--seed-owner`: a GitHub username 
+* `--seed-name`: a GitHub repository name from the provided GitHub user
+* `--seed-branch` the repository branch you want to use as starting point
 
 ## Development
 
@@ -45,6 +70,20 @@ documentation.
 ```
 $ npm run build
 ```
+
+
+## Code of conduct
+
+This project is governed by the [Code of
+Conduct](CODE_OF_CONDUCT.md). You are expected to act in accordance
+with this code by participating. Please report any unacceptable
+behavior to code-of-conduct@atomist.com.
+
+If you find a problem, please create an [issue][].
+
+[issue]: https://github.com/atomist-seeds/empty-sdm/issues
+
 ---
 [atomist]: https://atomist.com/ (Atomist - How Teams Deliver Software)
 [slack]: https://join.atomist.com/ (Atomist Community Slack)
+[seed-example]: https://github.com/ElderMael/micronaut-seed-app (Seed Project Example)
