@@ -16,8 +16,7 @@
 
 import {configure} from "@atomist/sdm-core";
 import {FeatureTogglingSeedGeneratorRegistration} from "./commands/feature-toggle";
-import {SeedProjectGoals} from "./lib/goals/goals";
 
-export const configuration = configure<SeedProjectGoals>(async sdm => {
+export const configuration = configure(async sdm => {
     sdm.addGeneratorCommand(FeatureTogglingSeedGeneratorRegistration);
 });
