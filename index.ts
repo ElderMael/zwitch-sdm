@@ -22,7 +22,7 @@ import {TreeNode} from "@atomist/tree-path";
 import {SeedProjectGoals} from "./lib/goals/goals";
 
 interface FeatureToggleParams {
-    featureName: string;
+    "remove.feature": string;
 }
 
 interface ElementValue extends TreeNode {
@@ -46,7 +46,7 @@ export const configuration = configure<SeedProjectGoals>(async sdm => {
         papi,
         params) => {
 
-        const featureToDelete = params.featureName;
+        const featureToDelete = params["remove.feature"];
 
         const matches = await astUtils.findMatches(
             project,
@@ -84,10 +84,10 @@ export const configuration = configure<SeedProjectGoals>(async sdm => {
             branch: "master",
         }),
         parameters: {
-            featureName: {
+            "remove.feature": {
                 required: true,
                 type: "string",
-
+                displayName: "Feature To Delete",
             },
         },
         transform: [
