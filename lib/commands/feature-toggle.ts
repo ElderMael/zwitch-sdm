@@ -29,10 +29,12 @@ function hasFeatureAnnotationAndFeatureToDelete(typeDeclaration: MatchResult, fe
     const childrenWithFeatureAnnotation = typeDeclaration
         .$children
         .filter(child => {
-            return child.hasOwnProperty("annotation");
-        })
-        .filter(annotationDeclaration => {
-            const annotation = (annotationDeclaration as AnnotatedTypeDeclaration).annotation;
+
+            if (!child.hasOwnProperty("annotation")) {
+                return false;
+            }
+
+            const annotation = (child as AnnotatedTypeDeclaration).annotation;
 
             const isNotFeatureAnnotation = annotation.annotationName.$value !== "Feature";
 
@@ -40,8 +42,9 @@ function hasFeatureAnnotationAndFeatureToDelete(typeDeclaration: MatchResult, fe
                 return false;
             }
 
-            const featureOnAnnotation = annotation.elementValue.$value.replace(/"/g, "");
-            return _.includes(featuresToDelete, featureOnAnnotation);
+            const featureName = annotation.elementValue.$value.replace(/"/g, "");
+
+            return _.includes(featuresToDelete, featureName);
         });
 
     return childrenWithFeatureAnnotation.length > 0;
@@ -63,11 +66,6 @@ const RemoveEchoFeatureTransform: CodeTransform<FeatureToggleParams> = async (
     );
 
     const filesToDelete = javaTypeDeclarations
-        .filter(typeDeclaration => {
-            return typeDeclaration.$children.some(child => {
-                return child.hasOwnProperty("annotation");
-            });
-        })
         .filter(typeDeclaration => {
             return hasFeatureAnnotationAndFeatureToDelete(typeDeclaration, featuresToDelete);
         })
