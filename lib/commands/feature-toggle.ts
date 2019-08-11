@@ -25,6 +25,28 @@ interface AnnotatedTypeDeclaration extends MatchResult {
     annotation: AnnotationAstNode;
 }
 
+function hasFeatureAnnotationAndFeatureToDelete(typeDeclaration: MatchResult, featuresToDelete: string[]): boolean {
+    const childrenWithFeatureAnnotation = typeDeclaration
+        .$children
+        .filter(child => {
+            return child.hasOwnProperty("annotation");
+        })
+        .filter(annotationDeclaration => {
+            const annotation = (annotationDeclaration as AnnotatedTypeDeclaration).annotation;
+
+            const isNotFeatureAnnotation = annotation.annotationName.$value !== "Feature";
+
+            if (isNotFeatureAnnotation) {
+                return false;
+            }
+
+            const featureOnAnnotation = annotation.elementValue.$value.replace(/"/g, "");
+            return _.includes(featuresToDelete, featureOnAnnotation);
+        });
+
+    return childrenWithFeatureAnnotation.length > 0;
+}
+
 const RemoveEchoFeatureTransform: CodeTransform<FeatureToggleParams> = async (
     project: Project,
     papi,
@@ -33,39 +55,26 @@ const RemoveEchoFeatureTransform: CodeTransform<FeatureToggleParams> = async (
     const featuresToDelete = params["remove.features"]
         .split(",");
 
-    const matches = await astUtils.findMatches(
+    const javaTypeDeclarations = await astUtils.findMatches(
         project,
         JavaFileParser,
         "**/*.java",
         `/compilationUnit//typeDeclaration`,
     );
 
-    matches.filter(match => {
-        const featureAnnotatedTypes = match
-            .$children
-            .filter(typeDeclaration => {
-                if (!typeDeclaration.hasOwnProperty("annotation")) {
-                    return false;
-                }
-
-                const annotatedTypeDeclaration = typeDeclaration as AnnotatedTypeDeclaration;
-                const annotationName = annotatedTypeDeclaration.annotation.annotationName.$value;
-
-                if (!(annotationName === "Feature")) {
-                    return false;
-                }
-
-                const expressionValue = annotatedTypeDeclaration.annotation.elementValue.$value;
-                const featureOnAnnotation = expressionValue.replace(/"/g, "");
-
-                return annotationName === "Feature" &&
-                    _.includes(featuresToDelete, featureOnAnnotation);
+    const filesToDelete = javaTypeDeclarations
+        .filter(typeDeclaration => {
+            return typeDeclaration.$children.some(child => {
+                return child.hasOwnProperty("annotation");
             });
+        })
+        .filter(typeDeclaration => {
+            return hasFeatureAnnotationAndFeatureToDelete(typeDeclaration, featuresToDelete);
+        })
+        .map(featureMatch => featureMatch.sourceLocation.path);
 
-        if (featureAnnotatedTypes.length > 0) {
-            project.deleteFile(match.sourceLocation.path);
-        }
-    });
+    filesToDelete.forEach(file => project.deleteFile(file));
+
 };
 
 export const FeatureTogglingSeedGeneratorRegistration: GeneratorRegistration<FeatureToggleParams> = {
