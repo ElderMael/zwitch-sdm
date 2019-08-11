@@ -37,7 +37,7 @@ atomist create seed instance \
     --seed-name=micronaut-seed-app \
     --seed-owner=ElderMael \
     --seed-branch=master \
-    --remove-feature=echo \
+    --remove-features=echo,users \
     --target-repo=seed-instance-6
 ```
 
