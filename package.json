@@ -25,6 +25,7 @@
   "main": "./index.js",
   "types": "./index.d.ts",
   "dependencies": {
+    "lodash": "^4.14.2",
     "@atomist/automation-client": "^1.6.2",
     "@atomist/tree-path": "^1.0.3",
     "@atomist/sdm": "^1.6.1",
@@ -32,6 +33,7 @@
     "@atomist/antlr": "^1.0.2"
   },
   "devDependencies": {
+    "@types/lodash": "^4.14.136",
     "@atomist/sdm-local": "^1.0.10",
     "@types/mocha": "^5.2.7",
     "@types/power-assert": "^1.5.0",

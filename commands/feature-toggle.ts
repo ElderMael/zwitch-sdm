@@ -2,9 +2,10 @@ import {JavaFileParser} from "@atomist/antlr";
 import {astUtils, GitHubRepoRef, MatchResult, Project} from "@atomist/automation-client";
 import {CodeTransform, GeneratorRegistration} from "@atomist/sdm";
 import {TreeNode} from "@atomist/tree-path";
+import * as _ from "lodash";
 
 interface FeatureToggleParams {
-    "remove.feature": string;
+    "remove.features": string;
     "seed.owner": string;
     "seed.name": string;
     "seed.branch": string;
@@ -29,7 +30,8 @@ const RemoveEchoFeatureTransform: CodeTransform<FeatureToggleParams> = async (
     papi,
     params) => {
 
-    const featureToDelete = params["remove.feature"];
+    const featuresToDelete = params["remove.features"]
+        .split(",");
 
     const matches = await astUtils.findMatches(
         project,
@@ -41,12 +43,23 @@ const RemoveEchoFeatureTransform: CodeTransform<FeatureToggleParams> = async (
     matches.filter(match => {
         const featureAnnotatedTypes = match
             .$children
-            .filter(child => child.hasOwnProperty("annotation"))
             .filter(typeDeclaration => {
+                if (!typeDeclaration.hasOwnProperty("annotation")) {
+                    return false;
+                }
+
                 const annotatedTypeDeclaration = typeDeclaration as AnnotatedTypeDeclaration;
                 const annotationName = annotatedTypeDeclaration.annotation.annotationName.$value;
-                const annotationFeature = annotatedTypeDeclaration.annotation.elementValue.$value;
-                return annotationName === "Feature" && annotationFeature === `"${featureToDelete}"`;
+
+                if (!(annotationName === "Feature")) {
+                    return false;
+                }
+
+                const expressionValue = annotatedTypeDeclaration.annotation.elementValue.$value;
+                const featureOnAnnotation = expressionValue.replace(/"/g, "");
+
+                return annotationName === "Feature" &&
+                    _.includes(featuresToDelete, featureOnAnnotation);
             });
 
         if (featureAnnotatedTypes.length > 0) {
@@ -69,10 +82,10 @@ export const FeatureTogglingSeedGeneratorRegistration: GeneratorRegistration<Fea
         });
     },
     parameters: {
-        "remove.feature": {
+        "remove.features": {
             required: true,
             type: "string",
-            displayName: "Feature To Delete",
+            displayName: "Comma Separated List Of Features To Delete",
         },
         "seed.branch": {
             required: true,
