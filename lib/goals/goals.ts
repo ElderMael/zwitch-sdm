@@ -19,7 +19,6 @@ import { AllGoals } from "@atomist/sdm-core";
 
 export interface SeedProjectGoals extends AllGoals {
 
-    /** Simple hello world goal */
     helloWorld: GoalWithFulfillment;
 
 }

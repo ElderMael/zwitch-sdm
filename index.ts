@@ -14,34 +14,87 @@
  * limitations under the License.
  */
 
-import { AnyPush } from "@atomist/sdm";
-import { configure } from "@atomist/sdm-core";
-import { SeedProjectGoalConfigurer } from "./lib/goals/goalConfigurer";
-import { SeedProjectGoalCreator } from "./lib/goals/goalCreator";
-import { SeedProjectGoals } from "./lib/goals/goals";
+import {JavaFileParser} from "@atomist/antlr";
+import {astUtils, GitHubRepoRef, MatchResult, Project} from "@atomist/automation-client";
+import {CodeTransform, GeneratorRegistration} from "@atomist/sdm";
+import {configure} from "@atomist/sdm-core";
+import {TreeNode} from "@atomist/tree-path";
+import {SeedProjectGoals} from "./lib/goals/goals";
 
-/**
- * The main entry point into the SDM
- */
+interface FeatureToggleParams {
+    featureName: string;
+}
+
+interface ElementValue extends TreeNode {
+    expression: TreeNode;
+}
+
+interface AnnotationAstNode extends TreeNode {
+    annotationName: TreeNode;
+    elementValues: ElementValue[];
+    elementValue: ElementValue;
+}
+
+interface AnnotatedTypeDeclaration extends MatchResult {
+    annotation: AnnotationAstNode;
+}
+
 export const configuration = configure<SeedProjectGoals>(async sdm => {
 
-    // Use the sdm instance to configure commands etc
-    sdm.addCommand({
-        name: "HelloWorld",
-        description: "Command that responds with a 'hello world'",
-        listener: async ci => {
-            await ci.addressChannels("Hello World");
-        },
-    });
+    const RemoveEchoFeatureTransform: CodeTransform<FeatureToggleParams> = async (
+        project: Project,
+        papi,
+        params) => {
 
-    // Create goals and configure them
-    const goals = await sdm.createGoals(SeedProjectGoalCreator, [SeedProjectGoalConfigurer]);
+        const featureToDelete = params.featureName;
 
-    // Return all push rules
-    return {
-        hello: {
-            test: AnyPush,
-            goals: goals.helloWorld,
-        },
+        const matches = await astUtils.findMatches(
+            project,
+            JavaFileParser,
+            "**/*.java",
+            `/compilationUnit//typeDeclaration`,
+        );
+
+        matches.filter(match => {
+            const featureAnnotatedTypes = match
+                .$children
+                .filter(child => child.hasOwnProperty("annotation"))
+                .filter(typeDeclaration => {
+                    const annotatedTypeDeclaration = typeDeclaration as AnnotatedTypeDeclaration;
+                    const annotationName = annotatedTypeDeclaration.annotation.annotationName.$value;
+                    const annotationFeature = annotatedTypeDeclaration.annotation.elementValue.$value;
+                    return annotationName === "Feature" && annotationFeature === `"${featureToDelete}"`;
+                });
+
+            if (featureAnnotatedTypes.length > 0) {
+                project.deleteFile(match.sourceLocation.path);
+            }
+        });
     };
+
+    const FeatureTogglingSeedGeneratorRegistration: GeneratorRegistration<FeatureToggleParams> = {
+        name: "Micronaut Code Generator",
+        intent: "create micronaut app",
+        description: "Creates a basic Micronaut Application",
+        tags: ["micronaut", "java"],
+        autoSubmit: true,
+        startingPoint: GitHubRepoRef.from({
+            owner: "ElderMael",
+            repo: "micronaut-seed-app",
+            branch: "master",
+        }),
+        parameters: {
+            featureName: {
+                required: true,
+                type: "string",
+
+            },
+        },
+        transform: [
+            RemoveEchoFeatureTransform,
+        ],
+    };
+
+    sdm.addGeneratorCommand(FeatureTogglingSeedGeneratorRegistration);
+
 });

@@ -14,42 +14,8 @@
  * limitations under the License.
  */
 
-import {JavaFileParser} from "@atomist/antlr";
-import {astUtils, GitHubRepoRef, Project} from "@atomist/automation-client";
-import {FileHit} from "@atomist/automation-client/lib/tree/ast/FileHits";
-import {CodeTransform, GeneratorRegistration} from "@atomist/sdm";
 import {GoalConfigurer} from "@atomist/sdm-core";
 import {SeedProjectGoals} from "./goals";
 
 export const SeedProjectGoalConfigurer: GoalConfigurer<SeedProjectGoals> = async (sdm, goals) => {
-
-    const RemoveEchoFeatureTransform: CodeTransform = async (project: Project) => {
-
-        const [singleMatch]: FileHit[] = await astUtils.findFileMatches(
-            project,
-            JavaFileParser,
-            "**/*.java",
-            "/compilationUnit//classDeclaration[//Identifier[@value='EchoController']]");
-
-        project.deleteFile(singleMatch.file.path);
-    };
-
-    const MicronautSeedGenerator: GeneratorRegistration = {
-        name: "Micronaut Code Generator",
-        intent: "create micronaut basic app without echo feature",
-        description: "Creates a basic Micronaut Application",
-        tags: ["micronaut", "java"],
-        autoSubmit: true,
-        startingPoint: GitHubRepoRef.from({
-            owner: "ElderMael",
-            repo: "micronaut-seed-app",
-            branch: "master",
-        }),
-        transform: [
-            RemoveEchoFeatureTransform,
-        ],
-    };
-
-    sdm.addGeneratorCommand(MicronautSeedGenerator);
-
 };
