@@ -1,5 +1,5 @@
-<p align="center">
-  <img src="https://images.atomist.com/sdm/SDM-Logo-Dark.png">
+<p style="horiz-align: center">
+  <img alt="Feature Toggling During Generation" src="https://images.atomist.com/sdm/SDM-Logo-Dark.png">
 </p>
 
 # zwitch-sdm
@@ -37,8 +37,12 @@ atomist create seed instance \
     --seed-name=micronaut-seed-app \
     --seed-owner=ElderMael \
     --seed-branch=master \
-    --remove-features=echo,users \
-    --target-repo=seed-instance-6
+    --remove-features=echo \
+    --reference-name=reference-http-app \
+    --reference-owner=ElderMael \
+    --reference-branch=master \
+    --copy-features=github \
+    --target-repo=seed-instance
 ```
 
 This will clone [this repository][seed-example] and remove classes tagged with `Feature("echo")`.

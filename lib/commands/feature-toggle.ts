@@ -1,14 +1,21 @@
 import {JavaFileParser} from "@atomist/antlr";
-import {astUtils, GitHubRepoRef, MatchResult, Project} from "@atomist/automation-client";
+import {astUtils, GitCommandGitProject, GitHubRepoRef, GitProject, MatchResult, Project} from "@atomist/automation-client";
 import {CodeTransform, GeneratorRegistration} from "@atomist/sdm";
 import {TreeNode} from "@atomist/tree-path";
 import * as _ from "lodash";
 
 interface FeatureToggleParams {
+
     "remove.features": string;
     "seed.owner": string;
     "seed.name": string;
     "seed.branch": string;
+
+    "copy.features": string;
+    "reference.owner": string;
+    "reference.name": string;
+    "reference.branch": string;
+
 }
 
 interface ElementValue extends TreeNode {
@@ -25,7 +32,12 @@ interface AnnotatedTypeDeclaration extends MatchResult {
     annotation: AnnotationAstNode;
 }
 
-function hasFeatureAnnotationAndFeatureToDelete(typeDeclaration: MatchResult, featuresToDelete: string[]): boolean {
+interface FileNode extends TreeNode {
+    path: string;
+}
+
+function hasFeatureAnnotationAndFeatureToDelete(typeDeclaration: MatchResult,
+                                                featuresToDelete: string[]): boolean {
     const childrenWithFeatureAnnotation = typeDeclaration
         .$children
         .filter(child => {
@@ -69,7 +81,7 @@ async function deleteFeatureFiles(project: Project, featuresToDelete: string[]):
     return Promise.all(promisesOfDeletion).then(_.head);
 }
 
-const RemoveEchoFeatureTransform: CodeTransform<FeatureToggleParams> = async (
+const RemoveFeatureTransform: CodeTransform<FeatureToggleParams> = async (
     project: Project,
     papi,
     params) => {
@@ -81,6 +93,42 @@ const RemoveEchoFeatureTransform: CodeTransform<FeatureToggleParams> = async (
     }
 
     return deleteFeatureFiles(project, featuresToDelete);
+
+};
+
+const CopyFeatureTransform: CodeTransform<FeatureToggleParams> = async (
+    project: Project,
+    papi,
+    params) => {
+
+    const featuresToCopy = _.compact(params["copy.features"].split(","));
+
+    if (_.isEmpty(featuresToCopy)) {
+        return Promise.resolve();
+    }
+
+    const referenceRepo = GitHubRepoRef.from({
+        owner: params["reference.owner"],
+        repo: params["reference.name"],
+        branch: params["reference.branch"],
+    });
+
+    const referenceProject: GitProject = await GitCommandGitProject.cloned(undefined, referenceRepo);
+
+    const featureTypes = await astUtils.findFileMatches(
+        referenceProject,
+        JavaFileParser,
+        "**/*.java",
+        `//annotation[//Identifier[@value='Feature']]`,
+    );
+
+    const newFilesToAdd = featureTypes.map(async featureType => {
+        const path = (featureType.fileNode as FileNode).path;
+        const content = await featureType.file.getContent();
+        return project.addFile(path, content);
+    });
+
+    return Promise.all(newFilesToAdd).then(_.head);
 
 };
 
@@ -118,8 +166,29 @@ export const FeatureTogglingSeedGeneratorRegistration: GeneratorRegistration<Fea
             type: "string",
             displayName: "GitHub username",
         },
+        "copy.features": {
+            required: true,
+            type: "string",
+            displayName: "Comma Separated List Of Features To Copy From Reference Project",
+        },
+        "reference.branch": {
+            required: true,
+            type: "string",
+            displayName: "Branch to use",
+        },
+        "reference.name": {
+            required: true,
+            type: "string",
+            displayName: "GitHub repository name",
+        },
+        "reference.owner": {
+            required: true,
+            type: "string",
+            displayName: "GitHub username",
+        },
     },
     transform: [
-        RemoveEchoFeatureTransform,
+        RemoveFeatureTransform,
+        CopyFeatureTransform,
     ],
 };
