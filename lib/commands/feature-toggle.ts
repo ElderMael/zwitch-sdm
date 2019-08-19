@@ -22,7 +22,7 @@ interface ElementValue extends TreeNode {
     expression: TreeNode;
 }
 
-interface AnnotationAstNode extends TreeNode {
+interface AnnotationAstNode extends TreeNode, MatchResult {
     annotationName: TreeNode;
     elementValues: ElementValue[];
     elementValue: ElementValue;
@@ -97,7 +97,7 @@ const RemoveFeatureTransform: CodeTransform<FeatureToggleParams> = async (
 };
 
 const CopyFeatureTransform: CodeTransform<FeatureToggleParams> = async (
-    project: Project,
+    seedProject: Project,
     papi,
     params) => {
 
@@ -122,14 +122,47 @@ const CopyFeatureTransform: CodeTransform<FeatureToggleParams> = async (
         `//annotation[//Identifier[@value='Feature']]`,
     );
 
+    const mainClassPackage = await astUtils.findMatches(
+        seedProject,
+        JavaFileParser,
+        "**/Application.java",
+        "//packageDeclaration//qualifiedName",
+    );
+
+    const newPackage = _.head(mainClassPackage).$value;
+    const newDirectory = "src/main/java/" + newPackage.replace(/\./g, "/");
+
     const newFilesToAdd = featureTypes.map(async featureType => {
+
+        const featureName = (_.head(featureType.matches) as AnnotationAstNode)
+            .elementValue.$value.replace(/"/g, "");
+
+        const featureDirectory = _.snakeCase(featureName).replace(/_/g, "/");
+        const featurePackage = _.snakeCase(featureName).replace("/_/g", ".");
+
         const path = (featureType.fileNode as FileNode).path;
+        const fileName = _.last(path.split("/"));
+
+        const newFilePath = newDirectory + "/" + featureDirectory + "/" + fileName;
         const content = await featureType.file.getContent();
-        return project.addFile(path, content);
+
+        await seedProject.addFile(newFilePath, content);
+
+        await astUtils.doWithAllMatches(
+            seedProject,
+            JavaFileParser,
+            newFilePath,
+            "/compilationUnit//packageDeclaration//qualifiedName",
+            match => {
+                match.$value = newPackage + "." + featurePackage;
+            });
+
     });
 
-    return Promise.all(newFilesToAdd).then(_.head);
+    await Promise
+        .all(newFilesToAdd);
 
+    return seedProject;
 };
 
 export const FeatureTogglingSeedGeneratorRegistration: GeneratorRegistration<FeatureToggleParams> = {
@@ -188,7 +221,7 @@ export const FeatureTogglingSeedGeneratorRegistration: GeneratorRegistration<Fea
         },
     },
     transform: [
-        RemoveFeatureTransform,
         CopyFeatureTransform,
+        RemoveFeatureTransform,
     ],
 };
