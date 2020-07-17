@@ -25,7 +25,7 @@
   "main": "./index.js",
   "types": "./index.d.ts",
   "dependencies": {
-    "lodash": "^4.14.2",
+    "lodash": "^4.17.19",
     "@atomist/automation-client": "^1.6.2",
     "@atomist/tree-path": "^1.0.3",
     "@atomist/sdm": "^1.6.1",
